@@ -16,13 +16,14 @@ class BaseController extends Controller
             $menu_arr = array(
                 '自主查询' =>array(
                     'list' =>array(
+                        '新增数据表'=>array('code'=>array('add_table'),'href'=>U("index/add_table")),
                         '从车查询'=>array('code'=>array('search_car'),'href'=>U("index/search_car")),
                         '从人查询'=>array('code'=>array('search_people'),'href'=>U("index/search_people")),
                         '从修理机构查询'=>array('code'=>array('search_company'),'href'=>U("index/search_company")),
                         '从手机号查询'=>array('code'=>array('search_phone'),'href'=>U("index/search_phone")),
                         '录入保险案件'=>array('code'=>array('add_case'),'href'=>U("index/add_case")),
                     ),
-                    'code'=>array('add_case','del_case','search_car','search_people','search_company','search_phone')
+                    'code'=>array('add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
                 ),
                 '风险库查询' =>array(
                     'list' =>array(

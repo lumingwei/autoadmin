@@ -3,6 +3,42 @@ namespace Home\Controller;
 use Think\Controller;
 class IndexController extends BaseController {
 
+    //新增数据表
+    public function add_table(){
+        $id         = I('id',0,'intval');
+        $table      = M('admin_tables');
+        if(!empty($id)){
+            $info = $table->where(array('id'=>$id))->find();
+        }
+        if(IS_AJAX){
+
+
+
+            $data['admin_id']       =  1;//$SESSION['admin_id']
+            $data['project_code']   =  !empty($_REQUEST['project_code'])?trim($_REQUEST['project_code']):'';
+            $data['table_name']     =  !empty($_REQUEST['table_name'])?trim($_REQUEST['table_name']):'';
+            $data['table_detail']   =  !empty($table_detail)?json_encode($table_detail):'';
+            $data['add_time']        = time();
+            if($id){
+                $ret        = $company->where(array('id'=>$id))->save($data);
+            }else{
+                $ret        = $company->add($data);
+            }
+            if($ret){
+                $this->success('操作成功', U('index/'.$from));
+            }else{
+                $this->error('操作失败');
+            }
+        }else{
+            $list[] = array();
+            $list[] = array();
+            $list[] = array();
+            $this->assign('info',!empty($info)?$info:array());
+            $this->assign('list',$list);// 赋值数据集
+            $this->display(); // 输出模板
+        }
+    }
+
     //后台首页
     public function index(){
         $this->display(); // 输出模板
