@@ -14,18 +14,19 @@ class BaseController extends Controller
         if(!IS_AJAX){
             //生成菜单html
             $menu_arr = array(
-                '自主查询' =>array(
+                '数据中心' =>array(
                     'list' =>array(
-                        '新增数据表'=>array('code'=>array('add_table'),'href'=>U("index/add_table")),
+                        '项目表'=>array('code'=>array('project_list'),'href'=>U("index/project_list")),
+                        '数据表'=>array('code'=>array('table_list'),'href'=>U("index/table_list")),
                         '从车查询'=>array('code'=>array('search_car'),'href'=>U("index/search_car")),
                         '从人查询'=>array('code'=>array('search_people'),'href'=>U("index/search_people")),
                         '从修理机构查询'=>array('code'=>array('search_company'),'href'=>U("index/search_company")),
                         '从手机号查询'=>array('code'=>array('search_phone'),'href'=>U("index/search_phone")),
                         '录入保险案件'=>array('code'=>array('add_case'),'href'=>U("index/add_case")),
                     ),
-                    'code'=>array('add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
+                    'code'=>array('project_list','add_project','table_list','add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
                 ),
-                '风险库查询' =>array(
+                '菜单设置' =>array(
                     'list' =>array(
                         '刑事案件'=>array('code'=>array('criminal_case','add_criminal_case'),'href'=>U("index/criminal_case")),
                         '风险车辆'=>array('code'=>array('risk_car','add_risk_car'),'href'=>U("index/risk_car")),
@@ -35,7 +36,7 @@ class BaseController extends Controller
                     ),
                     'code'=>array('add_risk_phone','add_risk_company','add_risk_people','add_risk_car','add_criminal_case','criminal_case','risk_car','risk_people','risk_company','risk_phone')
                 ),
-                '通讯录查询' =>array(
+                '权限设置' =>array(
                     'list' =>array(
                         '通讯录'=>array('code'=>array('risk_book','add_risk_book'),'href'=>U("index/risk_book")),
                     ),
