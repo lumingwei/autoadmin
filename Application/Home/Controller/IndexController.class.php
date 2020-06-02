@@ -232,15 +232,11 @@ class IndexController extends BaseController {
     public function menu_list(){
         $table_html                 = '';
         $postArr['project_code']   = I('project_code','','trim');
-        $postArr['project_name']   = I('project_name','','trim');
         $where = $where2 = array();
         if(!empty($postArr['project_code'])){
             $where2['project_code']  = $postArr['project_code'];
         }
-        if(!empty($postArr['project_name'])){
-            $where2['project_name']  = array('like', "%{$postArr['project_name']}%");
-        }
-        if(!empty($postArr['project_code']) || !empty($postArr['project_name'])){
+        if(!empty($postArr['project_code'])){
             $project_info = M('admin_projects')->where($where2)->find();
         }
         if(!empty($project_info) && !empty($project_info['project_code'])){
@@ -276,12 +272,14 @@ class IndexController extends BaseController {
                     $table_html.='<tr>';
                     foreach($show_column as $col){
                         if($col == 'menu_name'){
-                            $v[$col] = '-'.$v[$col];
-                        }
-                        if($col == 'is_show'){
+                            $v[$col] = '&nbsp;&nbsp;&nbsp;&nbsp;'.$v[$col];
+                            $table_html.="<td style=\"text-align:left\">{$v[$col]}</td>";
+                        }elseif($col == 'is_show'){
                             $v[$col] = $v[$col] == 1?'是':'否';
+                            $table_html.="<td>{$v[$col]}</td>";
+                        }else{
+                            $table_html.="<td>{$v[$col]}</td>";
                         }
-                        $table_html.="<td>{$v[$col]}</td>";
                     }
                     //顶级目录操作
                     $operate_str = "<a href='".U('index/add_menu')."&parent_id={$v['menu_id']}&project_code={$v['project_code']}' title='新增子菜单'><span>新增子菜单</span></a>&nbsp;&nbsp;";
@@ -294,12 +292,14 @@ class IndexController extends BaseController {
                             $table_html.='<tr>';
                             foreach($show_column as $col){
                                 if($col == 'menu_name'){
-                                    $sl[$col] = '---'.$sl[$col];
-                                }
-                                if($col == 'is_show'){
+                                    $sl[$col] = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$sl[$col];
+                                    $table_html.="<td style=\"text-align:left\">{$sl[$col]}</td>";
+                                }elseif($col == 'is_show'){
                                     $sl[$col] = $sl[$col] == 1?'是':'否';
+                                    $table_html.="<td>{$sl[$col]}</td>";
+                                }else{
+                                    $table_html.="<td>{$sl[$col]}</td>";
                                 }
-                                $table_html.="<td>{$sl[$col]}</td>";
                             }
                             //二级目录操作
                             $operate_str = "<a href='".U('index/add_menu')."&parent_id={$sl['menu_id']}&project_code={$v['project_code']}' title='新增子菜单'><span>新增子菜单</span></a>&nbsp;&nbsp;";
@@ -312,12 +312,14 @@ class IndexController extends BaseController {
                                     $table_html.='<tr>';
                                     foreach($show_column as $col){
                                         if($col == 'menu_name'){
-                                            $ssl[$col] = '-----'.$ssl[$col];
-                                        }
-                                        if($col == 'is_show'){
+                                            $ssl[$col] = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$ssl[$col];
+                                            $table_html.="<td style=\"text-align:left\">{$ssl[$col]}</td>";
+                                        }elseif($col == 'is_show'){
                                             $ssl[$col] = $ssl[$col] == 1?'是':'否';
+                                            $table_html.="<td>{$ssl[$col]}</td>";
+                                        }else{
+                                            $table_html.="<td>{$ssl[$col]}</td>";
                                         }
-                                        $table_html.="<td>{$ssl[$col]}</td>";
                                     }
                                     //底层菜单操作
                                     $operate_str  = "<a href='".U('index/add_menu')."&id={$ssl['menu_id']}' title='修改'><span>修改</span></a>&nbsp;&nbsp;";
@@ -353,6 +355,8 @@ class IndexController extends BaseController {
             if(empty($info)){
                 $this->error('数据异常');
             }
+        }else{
+            $info['is_show'] = 1;
         }
         if(IS_AJAX){
             if(empty($_REQUEST['project_code']) || empty($_REQUEST['menu_name'])){
@@ -369,41 +373,14 @@ class IndexController extends BaseController {
                 $nid = $ret                  = $table->add($data);
             }
             if($ret){
-                if($id){
-                    if($data['parent_id'] != $info['parent_id']){
-                        //删除
-                        $father        = $table->where(array('menu_id'=>$info['parent_id']))->find();
-                        if(!empty($father)){
-                              if(!empty($father['son_ids'])){
-                                  $son_list = explode(',',$father['son_ids']);
-                                  foreach($son_list as $k=>$v){
-                                      if($v  == $id){
-                                          unset($son_list[$k]);
-                                      }
-                                  }
-                                  $son_ids = !empty($son_list)?implode(',',$son_list):'';
-                                  $table->where(array('menu_id'=>$info['parent_id']))->save(array('son_ids'=>$son_ids));
-                              }
-                        }
-                        //新增
-                        $father        = $table->where(array('menu_id'=>$data['parent_id']))->find();
-                        if(!empty($father)){
-                            if(empty($father['son_ids'])){
-                                $son_ids = $id;
-                            }else{
-                                $son_ids = ','.$id;
-                            }
-                            $table->where(array('menu_id'=>$data['parent_id']))->save(array('son_ids'=>$son_ids));
-                        }
-                    }
-                }else{
+                if(empty($id)){
                     if(!empty($data['parent_id'])){
                         $father        = $table->where(array('menu_id'=>$data['parent_id']))->find();
                         if(!empty($father)){
                             if(empty($father['son_ids'])){
                                 $son_ids = $nid;
                             }else{
-                                $son_ids = ','.$nid;
+                                $son_ids = $father['son_ids'].','.$nid;
                             }
                             $table->where(array('menu_id'=>$data['parent_id']))->save(array('son_ids'=>$son_ids));
                         }
