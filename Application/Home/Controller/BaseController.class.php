@@ -18,13 +18,14 @@ class BaseController extends Controller
                     'list' =>array(
                         '项目表'=>array('code'=>array('project_list'),'href'=>U("index/project_list")),
                         '数据表'=>array('code'=>array('table_list'),'href'=>U("index/table_list")),
+                        '菜单表'=>array('code'=>array('menu_list'),'href'=>U("index/menu_list")),
                         '从车查询'=>array('code'=>array('search_car'),'href'=>U("index/search_car")),
                         '从人查询'=>array('code'=>array('search_people'),'href'=>U("index/search_people")),
                         '从修理机构查询'=>array('code'=>array('search_company'),'href'=>U("index/search_company")),
                         '从手机号查询'=>array('code'=>array('search_phone'),'href'=>U("index/search_phone")),
                         '录入保险案件'=>array('code'=>array('add_case'),'href'=>U("index/add_case")),
                     ),
-                    'code'=>array('project_list','add_project','table_list','add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
+                    'code'=>array('menu_list','project_list','add_project','table_list','add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
                 ),
                 '菜单设置' =>array(
                     'list' =>array(

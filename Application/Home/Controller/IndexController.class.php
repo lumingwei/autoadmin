@@ -228,6 +228,250 @@ class IndexController extends BaseController {
         return $ret;
     }
 
+    //菜单信息表
+    public function menu_list(){
+        $table_html                 = '';
+        $postArr['project_code']   = I('project_code','','trim');
+        $postArr['project_name']   = I('project_name','','trim');
+        $where = $where2 = array();
+        if(!empty($postArr['project_code'])){
+            $where2['project_code']  = $postArr['project_code'];
+        }
+        if(!empty($postArr['project_name'])){
+            $where2['project_name']  = array('like', "%{$postArr['project_name']}%");
+        }
+        if(!empty($postArr['project_code']) || !empty($postArr['project_name'])){
+            $project_info = M('admin_projects')->where($where2)->find();
+        }
+        if(!empty($project_info) && !empty($project_info['project_code'])){
+            $where['project_code']  = $project_info['project_code'];
+            $company      = M('project_menus'); // 实例化User对象
+           // 进行分页数据查询 注意limit方法的参数要使用Page类的属性
+            $list = $company->where($where)->order('sort desc,menu_id asc')->select();
+            if(!empty($list)){
+                foreach ($list as $k=>$v){
+                    $list[$k]['add_time']     = !empty($v['add_time'])?date('Y-m-d H:i:s',$v['add_time']):'';
+                    $list[$k]['update_time']  = !empty($v['update_time'])?date('Y-m-d H:i:s',$v['update_time']):'';
+                }
+                $key_son_list      = $this->tranKeyArray($list,'menu_id');
+                foreach ($list as $k=>$v){
+                    //第一层
+                    if(!empty($v['parent_id']) && isset($key_son_list[$v['parent_id']])){
+                        $key_son_list[$v['parent_id']]['son_list'][] = $v;
+                        unset($list[$k]);
+                    }
+                }
+/*                //第二层
+                foreach ($list as $k=>$v){
+                    if(!empty($v['parent_id']) && isset($key_son_list[$v['parent_id']]) && !empty($v['son_ids'])){
+                        $key_son_list[$v['parent_id']]['son_list'][] = $v;
+                        unset($list[$k]);
+                    }
+                }*/
+            }
+            //生成 table_html
+            if(!empty($list)){
+                $show_column = array('menu_name','sort','is_show','add_time','update_time');
+                foreach($list as $v){
+                    $table_html.='<tr>';
+                    foreach($show_column as $col){
+                        if($col == 'menu_name'){
+                            $v[$col] = '-'.$v[$col];
+                        }
+                        if($col == 'is_show'){
+                            $v[$col] = $v[$col] == 1?'是':'否';
+                        }
+                        $table_html.="<td>{$v[$col]}</td>";
+                    }
+                    //顶级目录操作
+                    $operate_str = "<a href='".U('index/add_menu')."&parent_id={$v['menu_id']}&project_code={$v['project_code']}' title='新增子菜单'><span>新增子菜单</span></a>&nbsp;&nbsp;";
+                    $operate_str .= "<a href='".U('index/add_menu')."&id={$v['menu_id']}' title='修改'><span>修改</span></a>&nbsp;&nbsp;";
+                    $operate_str .= "<a href='".U('index/del_menu')."&id={$v['menu_id']}' title='删除'><span>删除</span></a>";
+                    $table_html.="<td>".$operate_str."</td>";
+                    $table_html.='</tr>';
+                    if(!empty($key_son_list[$v['menu_id']]['son_list'])){
+                        foreach ($key_son_list[$v['menu_id']]['son_list'] as $sl){
+                            $table_html.='<tr>';
+                            foreach($show_column as $col){
+                                if($col == 'menu_name'){
+                                    $sl[$col] = '---'.$sl[$col];
+                                }
+                                if($col == 'is_show'){
+                                    $sl[$col] = $sl[$col] == 1?'是':'否';
+                                }
+                                $table_html.="<td>{$sl[$col]}</td>";
+                            }
+                            //二级目录操作
+                            $operate_str = "<a href='".U('index/add_menu')."&parent_id={$sl['menu_id']}&project_code={$v['project_code']}' title='新增子菜单'><span>新增子菜单</span></a>&nbsp;&nbsp;";
+                            $operate_str .= "<a href='".U('index/add_menu')."&id={$sl['menu_id']}' title='修改'><span>修改</span></a>&nbsp;&nbsp;";
+                            $operate_str .= "<a href='".U('index/del_menu')."&id={$sl['menu_id']}' title='删除'><span>删除</span></a>";
+                            $table_html.="<td>".$operate_str."</td>";
+                            $table_html.='</tr>';
+                            if(!empty($key_son_list[$sl['menu_id']]['son_list'])){
+                                foreach ($key_son_list[$sl['menu_id']]['son_list'] as $ssl){
+                                    $table_html.='<tr>';
+                                    foreach($show_column as $col){
+                                        if($col == 'menu_name'){
+                                            $ssl[$col] = '-----'.$ssl[$col];
+                                        }
+                                        if($col == 'is_show'){
+                                            $ssl[$col] = $ssl[$col] == 1?'是':'否';
+                                        }
+                                        $table_html.="<td>{$ssl[$col]}</td>";
+                                    }
+                                    //底层菜单操作
+                                    $operate_str  = "<a href='".U('index/add_menu')."&id={$ssl['menu_id']}' title='修改'><span>修改</span></a>&nbsp;&nbsp;";
+                                    $operate_str .= "<a href='".U('index/del_menu')."&id={$ssl['menu_id']}' title='删除'><span>删除</span></a>&nbsp;&nbsp;";
+                                    $table_html.="<td>".$operate_str."</td>";
+                                    $table_html.='</tr>';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }else{
+            $list = array();
+        }
+        $project_html    = $this->getProjectHtml($postArr['project_code']);
+        $this->assign('project_html',$project_html);// 搜索参数
+        $this->assign('table_html',$table_html);// 搜索参数
+        $this->assign('postArr',$postArr);// 搜索参数
+        $this->assign('list',$list);// 赋值数据集
+        $this->assign('page','');// 赋值分页输出
+        $this->display(); // 输出模板
+    }
+
+    //新增菜单
+    public function add_menu(){
+        $id                = I('id',0,'intval');
+        $parent_id         = I('parent_id',0,'intval');
+        $project_code      = I('project_code','','trim');
+        $table             = M('project_menus');
+        if(!empty($id)){
+            $info = $table->where(array('menu_id'=>$id))->find();
+            if(empty($info)){
+                $this->error('数据异常');
+            }
+        }
+        if(IS_AJAX){
+            if(empty($_REQUEST['project_code']) || empty($_REQUEST['menu_name'])){
+                $this->error('参数缺失！');
+            }
+            $data                = $table->create(); // 把无用的都顾虑掉了
+            $data['sort']        = intval($data['sort']);
+            $data['parent_id']   = intval($data['parent_id']);
+            if($id){
+                $data['update_time']        = time();
+                $ret        = $table->where(array('menu_id'=>$id))->save($data);
+            }else{
+                $data['add_time']           = time();
+                $nid = $ret                  = $table->add($data);
+            }
+            if($ret){
+                if($id){
+                    if($data['parent_id'] != $info['parent_id']){
+                        //删除
+                        $father        = $table->where(array('menu_id'=>$info['parent_id']))->find();
+                        if(!empty($father)){
+                              if(!empty($father['son_ids'])){
+                                  $son_list = explode(',',$father['son_ids']);
+                                  foreach($son_list as $k=>$v){
+                                      if($v  == $id){
+                                          unset($son_list[$k]);
+                                      }
+                                  }
+                                  $son_ids = !empty($son_list)?implode(',',$son_list):'';
+                                  $table->where(array('menu_id'=>$info['parent_id']))->save(array('son_ids'=>$son_ids));
+                              }
+                        }
+                        //新增
+                        $father        = $table->where(array('menu_id'=>$data['parent_id']))->find();
+                        if(!empty($father)){
+                            if(empty($father['son_ids'])){
+                                $son_ids = $id;
+                            }else{
+                                $son_ids = ','.$id;
+                            }
+                            $table->where(array('menu_id'=>$data['parent_id']))->save(array('son_ids'=>$son_ids));
+                        }
+                    }
+                }else{
+                    if(!empty($data['parent_id'])){
+                        $father        = $table->where(array('menu_id'=>$data['parent_id']))->find();
+                        if(!empty($father)){
+                            if(empty($father['son_ids'])){
+                                $son_ids = $nid;
+                            }else{
+                                $son_ids = ','.$nid;
+                            }
+                            $table->where(array('menu_id'=>$data['parent_id']))->save(array('son_ids'=>$son_ids));
+                        }
+                    }
+                }
+                $this->success('操作成功', U('index/menu_list').'&project_code='.$data['project_code']);
+            }else{
+                $this->error('操作失败'.'&project_code='.$data['project_code']);
+            }
+        }else{
+            if(empty($project_code)){
+                $project_code = !empty($info['project_code'])?$info['project_code']:'';
+            }
+            $project_html    = $this->getProjectHtml($project_code);
+            $this->assign('project_html',$project_html);// 搜索参数
+            if(!empty($parent_id)){
+                $info['parent_id'] = $parent_id;
+            }
+            $this->assign('info',!empty($info)?$info:array());
+            $this->display(); // 输出模板
+        }
+    }
+
+    //删除菜单
+    public function del_menu(){
+        $id   = I('id',0,'intval');
+        if(empty($id)){
+            $this->error('非法参数', U('index/menu_list'));
+        }
+        $table    = M('project_menus');
+        $info = $table->where(array('menu_id'=>$id))->find();
+        if(empty($info)){
+            $this->error('数据异常');
+        }
+        $ret        = $table->where(array('menu_id'=>$id))->delete();
+        if($ret){
+            if(!empty($info['parent_id'])){
+                //删除
+                $father        = $table->where(array('menu_id'=>$info['parent_id']))->find();
+                if(!empty($father)){
+                    if(!empty($father['son_ids'])){
+                        $son_list = explode(',',$father['son_ids']);
+                        foreach($son_list as $k=>$v){
+                            if($v  == $id){
+                                unset($son_list[$k]);
+                            }
+                        }
+                        $son_ids = !empty($son_list)?implode(',',$son_list):'';
+                        $table->where(array('menu_id'=>$info['parent_id']))->save(array('son_ids'=>$son_ids));
+                    }
+                }
+            }
+            //删除
+            if(!empty($info['son_ids'])){
+                $son_list = explode(',',$info['son_ids']);
+                foreach($son_list as $son){
+                    if(!empty($son['son_ids'])){
+                        $table->where(array('menu_id'=>array('in',$son['son_ids'])))->delete();
+                    }
+                }
+                $table->where(array('menu_id'=>array('in',$info['son_ids'])))->delete();
+            }
+            $this->success('操作成功', U('index/menu_list').'&project_code='.$info['project_code']);
+        }else{
+            $this->error('操作失败', U('index/menu_list').'&project_code='.$info['project_code']);
+        }
+    }
+
     //后台首页
     public function index(){
         $this->display(); // 输出模板
