@@ -3,6 +3,121 @@ namespace Home\Controller;
 use Think\Controller;
 class IndexController extends BaseController {
 
+    //列表页面表
+    public function list_list(){
+        $postArr['project_code']       = I('project_code','','trim');
+        $postArr['list_code']          = I('list_code','','trim');
+        $postArr['list_name']          = I('list_name','','trim');
+        $where = array();
+        if(!empty($postArr['project_code'])){
+            $where['project_code']  = $postArr['project_code'];
+        }
+        if(!empty($postArr['list_code'])){
+            $where['list_code']  = $postArr['list_code'];
+        }
+        if(!empty($postArr['list_name'])){
+            $where['list_name']  = array('like', "%{$postArr['list_name']}%");
+        }
+        $company    = M('admin_lists'); // 实例化User对象
+        $count      = $company->where($where)->count();// 查询满足要求的总记录数
+        $Page       = $this->getPage($count,20);// 实例化分页类 传入总记录数和每页显示的记录数
+        //分页跳转的时候保证查询条件
+        foreach($postArr as $key=>$val) {
+            $Page->parameter[$key]   =   urlencode($val);
+        }
+        $show       = $Page->show();// 分页显示输出
+// 进行分页数据查询 注意limit方法的参数要使用Page类的属性
+        $list = $company->where($where)->limit($Page->firstRow.','.$Page->listRows)->select();
+        $project_list      = M('admin_lists')->where(array('admin_id'=>1))->select();
+        $project_list      = $this->tranKeyArray($project_list,'project_code');
+        if(!empty($list)){
+            foreach ($list as $k=>$v){
+                $list[$k]['project_name'] = !empty($project_list[$v['project_code']]['project_name'])?$project_list[$v['project_code']]['project_name']:'';
+                $list[$k]['add_time']    = !empty($v['add_time'])?date('Y-m-d H:i:s',$v['add_time']):'';
+                $list[$k]['update_time'] = !empty($v['update_time'])?date('Y-m-d H:i:s',$v['update_time']):'';
+            }
+        }
+        $project_html    = $this->getProjectHtml($postArr['project_code']);
+        $this->assign('project_html',$project_html);// 搜索参数
+        $this->assign('postArr',$postArr);// 搜索参数
+        $this->assign('list',$list);// 赋值数据集
+        $this->assign('page',$show);// 赋值分页输出
+        $this->display(); // 输出模板
+    }
+
+    //新增
+    public function add_list_list(){
+        $id         = I('id',0,'intval');
+        $table      = M('admin_lists');
+        if(!empty($id)){
+            $info = $table->where(array('id'=>$id))->find();
+        }
+        if(IS_AJAX){
+            if(empty($_REQUEST['project_code']) || empty($_REQUEST['list_name'])){
+                $this->error('参数缺失！');
+            }
+            $table_detail            = $this->getTableDetail();
+            $data['admin_id']       =  1;//$SESSION['admin_id']
+            $data['project_code']   =  !empty($_REQUEST['project_code'])?trim($_REQUEST['project_code']):'';
+            $data['table_name']     =  !empty($_REQUEST['table_name'])?trim($_REQUEST['table_name']):'';
+            $data['table_annotation']     =  !empty($_REQUEST['table_annotation'])?trim($_REQUEST['table_annotation']):'';
+            $data['table_detail']   =  !empty($table_detail)?json_encode($table_detail):'';
+            if($id){
+                $data['update_time']        = time();
+                $ret        = $table->where(array('id'=>$id))->save($data);
+            }else{
+                $data['add_time']           = time();
+                $ret        = $table->add($data);
+            }
+            if($ret){
+                $this->success('操作成功', U('index/table_list'));
+            }else{
+                $this->error('操作失败');
+            }
+        }else{
+            $project_html    = $this->getProjectHtml($info['project_code']);
+            $this->assign('project_html',$project_html);// 搜索参数
+            $list = !empty($info['table_detail'])?json_decode($info['table_detail'],1):array();
+            if(empty($list)){
+                $list[] = array();
+                $list[] = array();
+                $list[] = array();
+                $list[] = array();
+                $list[] = array();
+                $list[] = array();
+                $list[] = array();
+                $list[] = array();
+            }
+            if(empty($table_list)){
+                $table_list[] = array();
+                $table_list[] = array();
+                $table_list[] = array();
+                $table_list[] = array();
+                $table_list[] = array();
+            }
+
+            $this->assign('info',!empty($info)?$info:array());
+            $this->assign('table_list',$table_list);// 赋值数据集
+            $this->assign('list',$list);// 赋值数据集
+            $this->display(); // 输出模板
+        }
+    }
+
+    //删除
+    public function del_list_list(){
+        $id   = I('id',0,'intval');
+        if(empty($id)){
+            $this->error('非法参数', U('index/table_list'));
+        }
+        $company    = M('admin_tables');
+        $ret        = $company->where(array('id'=>$id))->delete();
+        if($ret){
+            $this->success('操作成功', U('index/table_list'));
+        }else{
+            $this->error('操作失败', U('index/table_list'));
+        }
+    }
+
     private function getProjectHtml($select_id = ''){
         $select_id = !empty($select_id)?trim($select_id):'';
         $list   = M('admin_projects')->select();

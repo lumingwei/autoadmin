@@ -19,13 +19,14 @@ class BaseController extends Controller
                         '项目表'=>array('code'=>array('project_list'),'href'=>U("index/project_list")),
                         '数据表'=>array('code'=>array('table_list'),'href'=>U("index/table_list")),
                         '菜单表'=>array('code'=>array('menu_list'),'href'=>U("index/menu_list")),
-                        '从车查询'=>array('code'=>array('search_car'),'href'=>U("index/search_car")),
+                        '列表页面表'=>array('code'=>array('list_list'),'href'=>U("index/list_list")),
+                        '编辑页面表'=>array('code'=>array('info_list'),'href'=>U("index/info_list")),
                         '从人查询'=>array('code'=>array('search_people'),'href'=>U("index/search_people")),
                         '从修理机构查询'=>array('code'=>array('search_company'),'href'=>U("index/search_company")),
                         '从手机号查询'=>array('code'=>array('search_phone'),'href'=>U("index/search_phone")),
                         '录入保险案件'=>array('code'=>array('add_case'),'href'=>U("index/add_case")),
                     ),
-                    'code'=>array('menu_list','project_list','add_project','table_list','add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
+                    'code'=>array('info_list','list_list','menu_list','project_list','add_project','table_list','add_table','add_case','del_case','search_car','search_people','search_company','search_phone')
                 ),
                 '菜单设置' =>array(
                     'list' =>array(
@@ -73,7 +74,14 @@ class BaseController extends Controller
                     $menu_html .= '</li>';
                 }
             }
+
+            $controller_name = strtolower(CONTROLLER_NAME);
+            $act_name        = strtolower(ACTION_NAME);
+            //ACTION_NAME
             $this->assign('menu_html',$menu_html);
+            $this->assign('lmw_url',U("{$controller_name}/{$act_name}"));//当前访问url
+            $this->assign('lmw_add_url',U("{$controller_name}/add_{$act_name}"));//新增/编辑url
+            $this->assign('lmw_del_url',U("{$controller_name}/del_{$act_name}"));//删除url
         }
     }
 
