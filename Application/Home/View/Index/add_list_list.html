@@ -21,7 +21,7 @@
                 项目：
                   {$project_html}
                 列表页面名称：
-                <input  name="table_name" value="{$info['list_name']}">
+                <input  name="list_name" value="{$info['list_name']}">
                 <br/><br/>
                 数据表关联关系
                 <br/>
@@ -36,27 +36,14 @@
                     <volist name="table_list" id="vo" key="k" >
                         <tr>
                             <td>
-                                <select  name="table_name[]" style="width:150px">
-                                    <option value="int" <if condition="$vo['field_type'] == 'int'">selected</if>>整数</option>
-                                    <option value="varchar" <if condition="$vo['field_type'] == 'varchar'">selected</if>>文字</option>
-                                    <option value="text" <if condition="$vo['field_type'] == 'text'">selected</if>>超长文字</option>
-                                </select>
-                                <select  name="field_name[]" style="width:150px">
-                                    <option value="Normal" <if condition="$vo['index_type'] == 'Normal'">selected</if>>普通索引</option>
-                                    <option value="Unique" <if condition="$vo['index_type'] == 'Unique'">selected</if>>唯一索引</option>
-                                </select>
+                                {$vo.table_html_1}
+                                左联
+                                {$vo.table_html_2}
                             </td>
                             <td>
-                                <select  name="table_name[]" style="width:150px">
-                                    <option value="int" <if condition="$vo['field_type'] == 'int'">selected</if>>整数</option>
-                                    <option value="varchar" <if condition="$vo['field_type'] == 'varchar'">selected</if>>文字</option>
-                                    <option value="text" <if condition="$vo['field_type'] == 'text'">selected</if>>超长文字</option>
-                                </select>
+                                {$vo.join_field_1}
                                 等于
-                                <select  name="field_name[]" style="width:150px">
-                                    <option value="Normal" <if condition="$vo['index_type'] == 'Normal'">selected</if>>普通索引</option>
-                                    <option value="Unique" <if condition="$vo['index_type'] == 'Unique'">selected</if>>唯一索引</option>
-                                </select>
+                                {$vo.join_field_2}
                             </td>
                         </tr>
                     </volist>
@@ -76,17 +63,10 @@
                     <tbody align="center">
                     <volist name="list" id="vo" key="k" >
                         <tr>
-                            <td><input type="text" name="show_name[]" value="{$vo.show_name}"></td>
+                            <td><input type="text" name="show_field_name[]" value="{$vo.show_field_name}"></td>
                             <td>
-                                <select  name="table_name[]" style="width:150px">
-                                    <option value="int" <if condition="$vo['field_type'] == 'int'">selected</if>>整数</option>
-                                    <option value="varchar" <if condition="$vo['field_type'] == 'varchar'">selected</if>>文字</option>
-                                    <option value="text" <if condition="$vo['field_type'] == 'text'">selected</if>>超长文字</option>
-                                </select>
-                                <select  name="field_name[]" style="width:150px">
-                                    <option value="Normal" <if condition="$vo['index_type'] == 'Normal'">selected</if>>普通索引</option>
-                                    <option value="Unique" <if condition="$vo['index_type'] == 'Unique'">selected</if>>唯一索引</option>
-                                </select>
+                                {$vo.table}
+                                {$vo.field_name}
                             </td>
                             <td><input type="text" size="40" name="default_value[]" value="{$vo.default_value}"></td>
                             <td>
@@ -105,6 +85,186 @@
 
 <include file="Index:footer" />
 <script>
+    var table_all_list = '';
+    function joinTableChange(){
+        var mya  = new Array();
+        var mya_1= new Array();
+        $('select[name="table_id_1[]"]').each(function(i) {
+            if($(this).find('option:selected').val()){
+                mya.push($(this).find('option:selected').val());
+            }
+        })
+        $('select[name="table_id_2[]"]').each(function(i) {
+            if($(this).find('option:selected').val()){
+                mya.push($(this).find('option:selected').val());
+            }
+        })
+        if(mya){
+            $.unique(mya.sort());
+        }
+        console.log(mya);
+        $('select[name="table_id[]"]').each(function(i) {
+            var sel_id = this.id;
+            var sel_value = this.value;
+            var arr = sel_id.split('_');
+            var key_id = arr.pop();
+            jQuery('select[id="table_id_'+key_id+'"]').empty();
+            jQuery('select[id="table_id_'+key_id+'"]').append("<option value=\"\">请选择</option>");
+            $.each(table_all_list,function(index,value){
+                if(isInArray(mya,value['id'])){
+                    if(sel_value && sel_value == value['id']){
+                        jQuery('select[id="table_id_'+key_id+'"]').append("<option value=\""+value['id']+"\" selected>"+value['table_name']+"</option>");
+                    }else{
+                        jQuery('select[id="table_id_'+key_id+'"]').append("<option value=\""+value['id']+"\">"+value['table_name']+"</option>");
+                    }
+                }
+            });
+        })
+    }
+    function isInArray(arr,value){
+        for(var i = 0; i < arr.length; i++){
+            if(value === arr[i]){
+                return true;
+            }
+        }
+        return false;
+    }
+    $('#project_code').change(function(){
+        var project_code = $('#project_code').val();
+        if(project_code){
+            jQuery.ajax({
+
+                url:"{:U('index/getTableByProjectCode')}",
+
+                data: {
+                    project_code: project_code
+                },
+
+                type:"POST",
+
+                beforeSend:function()
+                {
+                },
+                success:function(data)
+                {
+                    if(data.status == 1 && data.table_html){
+                        table_all_list = data.table_list;
+                        $('select[name="table_id[]"]').html('<option value="">请选择</option>');
+                        $('select[name="table_id_1[]"]').html(data.table_html);
+                        $('select[name="table_id_2[]"]').html(data.table_html);
+                        $('select[name="field_name[]"]').html('<option value="">请选择</option>');
+                        $('select[name="field_name_1[]"]').html('<option value="">请选择</option>');
+                        $('select[name="field_name_2[]"]').html('<option value="">请选择</option>');
+                    }
+                }
+
+            });
+        }else{
+            $('select[name="table_id[]"]').html('<option value="">请选择</option>');
+            $('select[name="table_id_1[]"]').html('<option value="">请选择</option>');
+            $('select[name="table_id_2[]"]').html('<option value="">请选择</option>');
+            $('select[name="field_name[]"]').html('<option value="">请选择</option>');
+            $('select[name="field_name_1[]"]').html('<option value="">请选择</option>');
+            $('select[name="field_name_2[]"]').html('<option value="">请选择</option>');
+        }
+    })
+    $('select[name="table_id[]"]').change(function(){
+        var tid = this.value;
+        var sel_id = this.id;
+        var arr = sel_id.split('_');
+        var key_id = arr.pop();
+        if(tid){
+            jQuery.ajax({
+
+                url:"{:U('index/getFieldByTableId')}",
+
+                data: {
+                    id: tid
+                },
+
+                type:"POST",
+
+                beforeSend:function()
+                {
+                },
+                success:function(data)
+                {
+                    if(data.status == 1 && data.field_html){
+                        $('select[id="field_name_'+key_id+'"]').html(data.field_html);
+                    }
+                }
+
+            });
+        }else{
+            $('select[id="field_name_'+key_id+'"]').html('<option value="">请选择</option>');
+        }
+    })
+    $('select[name="table_id_1[]"]').change(function(){
+        var tid = this.value;
+        var sel_id = this.id;
+        var arr = sel_id.split('_');
+        var key_id = arr.pop();
+        if(tid){
+            jQuery.ajax({
+
+                url:"{:U('index/getFieldByTableId')}",
+
+                data: {
+                    id: tid
+                },
+
+                type:"POST",
+
+                beforeSend:function()
+                {
+                },
+                success:function(data)
+                {
+                    if(data.status == 1 && data.field_html){
+                        $('select[id="field_name_1_'+key_id+'"]').html(data.field_html);
+                    }
+                }
+
+            });
+            joinTableChange();
+        }else{
+            joinTableChange();
+            $('select[id="field_name_1_'+key_id+'"]').html('<option value="">请选择</option>');
+        }
+    })
+    $('select[name="table_id_2[]"]').change(function(){
+        var tid = this.value;
+        var sel_id = this.id;
+        var arr = sel_id.split('_');
+        var key_id = arr.pop();
+        if(tid){
+            jQuery.ajax({
+
+                url:"{:U('index/getFieldByTableId')}",
+
+                data: {
+                    id: tid
+                },
+
+                type:"POST",
+
+                beforeSend:function()
+                {
+                },
+                success:function(data)
+                {
+                    if(data.status == 1 && data.field_html){
+                        $('select[id="field_name_2_'+key_id+'"]').html(data.field_html);
+                    }
+                }
+
+            });
+            joinTableChange();
+        }else{
+            joinTableChange();
+            $('select[id="field_name_2_'+key_id+'"]').html('<option value="">请选择</option>');
+        }
+    })
     $(document).ready(function() {
 // 使用 jQuery异步提交表单
         $('#editRealMsgForm').submit(function() {

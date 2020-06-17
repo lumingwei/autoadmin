@@ -45,12 +45,65 @@ class IndexController extends BaseController {
         $this->display(); // 输出模板
     }
 
+    private function getTableHtml($select_id = '',$name='',$data = NULL,$id=''){
+        $select_id = !empty($select_id)?trim($select_id):'';
+        $id_str    = !empty($id)?'id="'.$id.'"':'';
+        if($name){
+            $html   = '<select  name="'.$name.'"'.$id_str.'>';
+        }else{
+            $html   = '<select  name="table_id"'.$id_str.'>';
+        }
+        $html  .= '<option value="">请选择</option>';
+        if($data !== NULL){
+            $list = $data;
+        }else{
+            $list   = M('admin_tables')->select();
+        }
+        if(!empty($list)){
+            foreach ($list as $v){
+                if($v['id'] == $select_id){
+                    $html .= '<option value="'.$v['id'].'" selected>'.$v['table_name'].'</option>';
+                }else{
+                    $html .= '<option value="'.$v['id'].'">'.$v['table_name'].'</option>';
+                }
+            }
+        }
+        $html .= '</select>';
+        return $html;
+    }
+
+    private function getFieldHtml($select_id = '',$name='',$data = NULL,$id=''){
+        $select_id = !empty($select_id)?trim($select_id):'';
+        $id_str    = !empty($id)?'id="'.$id.'"':'';
+        $html   = '<select  name="'.$name.'"'.$id_str.'>';
+        $html  .= '<option value="">请选择</option>';
+        if($data !== NULL){
+            $list = $data;
+        }
+        if(!empty($list)){
+            foreach ($list as $v){
+                if($v['id'] == $select_id){
+                    $html .= '<option value="'.$v['field_name'].'" selected>'.$v['field_name'].'</option>';
+                }else{
+                    $html .= '<option value="'.$v['field_name'].'">'.$v['field_name'].'</option>';
+                }
+            }
+        }
+        $html .= '</select>';
+        return $html;
+    }
+
     //新增
     public function add_list_list(){
         $id         = I('id',0,'intval');
         $table      = M('admin_lists');
         if(!empty($id)){
             $info = $table->where(array('id'=>$id))->find();
+            if(!empty($info)){
+                $list_detail = !empty($info['list_detail'])?json_decode($info['list_detail'],1):array();
+                $info['table_list'] = !empty($list_detail['table_list'])?$list_detail['table_list']:array();
+                $info['show_list']  = !empty($list_detail['show_list'])?$list_detail['show_list']:array();
+            }
         }
         if(IS_AJAX){
             if(empty($_REQUEST['project_code']) || empty($_REQUEST['list_name'])){
@@ -70,32 +123,54 @@ class IndexController extends BaseController {
                 $ret        = $table->add($data);
             }
             if($ret){
-                $this->success('操作成功', U('index/table_list'));
+                $this->success('操作成功', U('index/list_list'));
             }else{
                 $this->error('操作失败');
             }
         }else{
             $project_html    = $this->getProjectHtml($info['project_code']);
             $this->assign('project_html',$project_html);// 搜索参数
-            $list = !empty($info['table_detail'])?json_decode($info['table_detail'],1):array();
-            if(empty($list)){
-                $list[] = array();
-                $list[] = array();
-                $list[] = array();
-                $list[] = array();
-                $list[] = array();
-                $list[] = array();
-                $list[] = array();
-                $list[] = array();
+            if(empty($info['show_list'])){
+                for($i=1;$i<=8;$i++){
+                    $table_html = $this->getTableHtml('','table_id[]',array(),'table_id_'.$i);
+                    $field_html = $this->getFieldHtml('','field_name[]',array(),'field_name_'.$i);
+                    $list[] = array('show_field_name'=>'','table'=>$table_html,'field_name'=>$field_html,'default_value'=>'');
+                }
+            }else{
+                $table_list = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
+                $table_key_list =  $this->tranKeyArray($table_list,'id');
+                $i=0;
+                foreach($info['table_list'] as $v){
+                    $field_list_1 =  !empty($table_key_list[$v['table_id']]['table_detail'])?json_decode($table_key_list[$v['table_id']]['table_detail'],1):array();
+                    $table_html = $this->getTableHtml($v['table_id'],'table_id[]',$table_list,'table_id_'.$i);
+                    $field_html = $this->getFieldHtml($v['field_name'],'field_name[]',$field_list_1,'field_name_'.$i);
+                    $list[] = array('show_field_name'=>$v['show_field_name'],'table'=>$table_html,'field_name'=>$field_html,'default_value'=>$v['default_value']);
+                    $i++;
+                }
             }
-            if(empty($table_list)){
-                $table_list[] = array();
-                $table_list[] = array();
-                $table_list[] = array();
-                $table_list[] = array();
-                $table_list[] = array();
+            if(empty($info['table_list'])){
+                for($i=1;$i<=6;$i++){
+                    $table_html_1 = $this->getTableHtml('','table_id_1[]',array(),'table_id_1_'.$i);
+                    $table_html_2 = $this->getTableHtml('','table_id_2[]',array(),'table_id_2_'.$i);
+                    $field_html_1 = $this->getFieldHtml($v['field_name_1'],'field_name_1[]',array(),'field_name_1_'.$i);
+                    $field_html_2 = $this->getFieldHtml($v['field_name_2'],'field_name_2[]',array(),'field_name_2_'.$i);
+                    $table_list[] = array('table_html_1'=>$table_html_1,'table_html_2'=>$table_html_2,'join_field_1'=>$field_html_1,'join_field_2'=>$field_html_2);
+                }
+            }else{
+                $table_list = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
+                $table_key_list =  $this->tranKeyArray($table_list,'id');
+                foreach($info['table_list'] as $v){
+                    $field_list_1 =  !empty($table_key_list[$v['table_id_1']]['table_detail'])?json_decode($table_key_list[$v['table_id_1']]['table_detail'],1):array();
+                    $field_list_2 =  !empty($table_key_list[$v['table_id_2']]['table_detail'])?json_decode($table_key_list[$v['table_id_2']]['table_detail'],1):array();
+                    $field_html_1 = $this->getFieldHtml($v['field_name_1'],'field_name_1[]',$field_list_1);
+                    $field_html_2 = $this->getFieldHtml($v['field_name_2'],'field_name_2[]',$field_list_2);
+                    $table_html_1 = $this->getTableHtml($v['table_id_1'],'table_id_1[]',$table_list);
+                    $table_html_2 = $this->getTableHtml($v['table_id_2'],'table_id_2[]',$table_list);
+                    $table_list[] = array('table_html_1'=>$table_html_1,'table_html_2'=>$table_html_2,'join_field_1'=>$field_html_1,'join_field_2'=>$field_html_2);
+                }
             }
-
+            $table_list_json = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
+            $this->assign('table_list_json', !empty($table_list_json)?json_encode($table_list_json):'');
             $this->assign('info',!empty($info)?$info:array());
             $this->assign('table_list',$table_list);// 赋值数据集
             $this->assign('list',$list);// 赋值数据集
@@ -118,10 +193,36 @@ class IndexController extends BaseController {
         }
     }
 
+    public function getTableByProjectCode(){
+        $project_code   = I('project_code','','trim');
+        $table_list = M('admin_tables')->where(array('project_code'=>$project_code))->select();
+        $table_list = !empty($table_list)?$table_list:array();
+        $html  = '<option value="">请选择</option>';
+        if(!empty($table_list)){
+            foreach ($table_list as $v){
+                $html .= '<option value="'.$v['id'].'">'.$v['table_name'].'</option>';
+            }
+        }
+        $this->success('操作成功', '',array('table_html'=>$html,'table_list'=>$table_list));
+    }
+
+    public function getFieldByTableId(){
+        $id         = I('id',0,'intval');
+        $table_list = M('admin_tables')->where(array('id'=>$id))->find();
+        $field_list = !empty($table_list['table_detail'])?json_decode($table_list['table_detail'],1):array();
+        $html  = '<option value="">请选择</option>';
+        if(!empty($field_list)){
+            foreach ($field_list as $v){
+                $html .= '<option value="'.$v['field_name'].'">'.$v['field_name'].'</option>';
+            }
+        }
+        $this->success('操作成功', '',array('field_html'=>$html,'field_list'=>$field_list));
+    }
+
     private function getProjectHtml($select_id = ''){
         $select_id = !empty($select_id)?trim($select_id):'';
         $list   = M('admin_projects')->select();
-        $html   = '<select  name="project_code">';
+        $html   = '<select  name="project_code" id="project_code">';
         $html  .= '<option value="">请选择</option>';
         if(!empty($list)){
             foreach ($list as $v){
