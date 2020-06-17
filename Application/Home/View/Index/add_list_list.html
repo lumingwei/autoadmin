@@ -85,7 +85,12 @@
 
 <include file="Index:footer" />
 <script>
-    var table_all_list = '';
+    var table_all_list  = '';
+    var table_list_json = '{$table_list_json}';
+    if(table_list_json){
+        table_all_list = JSON.parse(table_list_json);
+    }
+
     function joinTableChange(){
         var mya  = new Array();
         var mya_1= new Array();
@@ -108,6 +113,10 @@
             var sel_value = this.value;
             var arr = sel_id.split('_');
             var key_id = arr.pop();
+            if(sel_value && !isInArray(mya,sel_value)){
+                jQuery('select[id="field_name_'+key_id+'"]').empty();
+                jQuery('select[id="field_name_'+key_id+'"]').append("<option value=\"\">请选择</option>");
+            }
             jQuery('select[id="table_id_'+key_id+'"]').empty();
             jQuery('select[id="table_id_'+key_id+'"]').append("<option value=\"\">请选择</option>");
             $.each(table_all_list,function(index,value){

@@ -28,7 +28,7 @@ class IndexController extends BaseController {
         $show       = $Page->show();// 分页显示输出
 // 进行分页数据查询 注意limit方法的参数要使用Page类的属性
         $list = $company->where($where)->limit($Page->firstRow.','.$Page->listRows)->select();
-        $project_list      = M('admin_lists')->where(array('admin_id'=>1))->select();
+        $project_list      = M('admin_projects')->where(array('admin_id'=>1))->select();
         $project_list      = $this->tranKeyArray($project_list,'project_code');
         if(!empty($list)){
             foreach ($list as $k=>$v){
@@ -82,7 +82,7 @@ class IndexController extends BaseController {
         }
         if(!empty($list)){
             foreach ($list as $v){
-                if($v['id'] == $select_id){
+                if($v['field_name'] == $select_id){
                     $html .= '<option value="'.$v['field_name'].'" selected>'.$v['field_name'].'</option>';
                 }else{
                     $html .= '<option value="'.$v['field_name'].'">'.$v['field_name'].'</option>';
@@ -101,20 +101,19 @@ class IndexController extends BaseController {
             $info = $table->where(array('id'=>$id))->find();
             if(!empty($info)){
                 $list_detail = !empty($info['list_detail'])?json_decode($info['list_detail'],1):array();
-                $info['table_list'] = !empty($list_detail['table_list'])?$list_detail['table_list']:array();
-                $info['show_list']  = !empty($list_detail['show_list'])?$list_detail['show_list']:array();
+                $info['table_relation'] = !empty($list_detail['table_relation'])?$list_detail['table_relation']:array();
+                $info['show_detail']  = !empty($list_detail['show_detail'])?$list_detail['show_detail']:array();
             }
         }
         if(IS_AJAX){
             if(empty($_REQUEST['project_code']) || empty($_REQUEST['list_name'])){
                 $this->error('参数缺失！');
             }
-            $table_detail            = $this->getTableDetail();
+            $list_detail            = $this->getListDetail();
             $data['admin_id']       =  1;//$SESSION['admin_id']
             $data['project_code']   =  !empty($_REQUEST['project_code'])?trim($_REQUEST['project_code']):'';
-            $data['table_name']     =  !empty($_REQUEST['table_name'])?trim($_REQUEST['table_name']):'';
-            $data['table_annotation']     =  !empty($_REQUEST['table_annotation'])?trim($_REQUEST['table_annotation']):'';
-            $data['table_detail']   =  !empty($table_detail)?json_encode($table_detail):'';
+            $data['list_name']     =  !empty($_REQUEST['list_name'])?trim($_REQUEST['list_name']):'';
+            $data['list_detail']   =  !empty($list_detail)?json_encode($list_detail):'';
             if($id){
                 $data['update_time']        = time();
                 $ret        = $table->where(array('id'=>$id))->save($data);
@@ -130,25 +129,9 @@ class IndexController extends BaseController {
         }else{
             $project_html    = $this->getProjectHtml($info['project_code']);
             $this->assign('project_html',$project_html);// 搜索参数
-            if(empty($info['show_list'])){
-                for($i=1;$i<=8;$i++){
-                    $table_html = $this->getTableHtml('','table_id[]',array(),'table_id_'.$i);
-                    $field_html = $this->getFieldHtml('','field_name[]',array(),'field_name_'.$i);
-                    $list[] = array('show_field_name'=>'','table'=>$table_html,'field_name'=>$field_html,'default_value'=>'');
-                }
-            }else{
-                $table_list = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
-                $table_key_list =  $this->tranKeyArray($table_list,'id');
-                $i=0;
-                foreach($info['table_list'] as $v){
-                    $field_list_1 =  !empty($table_key_list[$v['table_id']]['table_detail'])?json_decode($table_key_list[$v['table_id']]['table_detail'],1):array();
-                    $table_html = $this->getTableHtml($v['table_id'],'table_id[]',$table_list,'table_id_'.$i);
-                    $field_html = $this->getFieldHtml($v['field_name'],'field_name[]',$field_list_1,'field_name_'.$i);
-                    $list[] = array('show_field_name'=>$v['show_field_name'],'table'=>$table_html,'field_name'=>$field_html,'default_value'=>$v['default_value']);
-                    $i++;
-                }
-            }
-            if(empty($info['table_list'])){
+            $table_list_tmp = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
+            $table_key_list =  $this->tranKeyArray($table_list_tmp,'id');
+            if(empty($info['table_relation'])){
                 for($i=1;$i<=6;$i++){
                     $table_html_1 = $this->getTableHtml('','table_id_1[]',array(),'table_id_1_'.$i);
                     $table_html_2 = $this->getTableHtml('','table_id_2[]',array(),'table_id_2_'.$i);
@@ -157,19 +140,43 @@ class IndexController extends BaseController {
                     $table_list[] = array('table_html_1'=>$table_html_1,'table_html_2'=>$table_html_2,'join_field_1'=>$field_html_1,'join_field_2'=>$field_html_2);
                 }
             }else{
-                $table_list = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
-                $table_key_list =  $this->tranKeyArray($table_list,'id');
-                foreach($info['table_list'] as $v){
+                foreach($info['table_relation'] as $v){
                     $field_list_1 =  !empty($table_key_list[$v['table_id_1']]['table_detail'])?json_decode($table_key_list[$v['table_id_1']]['table_detail'],1):array();
                     $field_list_2 =  !empty($table_key_list[$v['table_id_2']]['table_detail'])?json_decode($table_key_list[$v['table_id_2']]['table_detail'],1):array();
                     $field_html_1 = $this->getFieldHtml($v['field_name_1'],'field_name_1[]',$field_list_1);
                     $field_html_2 = $this->getFieldHtml($v['field_name_2'],'field_name_2[]',$field_list_2);
-                    $table_html_1 = $this->getTableHtml($v['table_id_1'],'table_id_1[]',$table_list);
-                    $table_html_2 = $this->getTableHtml($v['table_id_2'],'table_id_2[]',$table_list);
+                    $table_html_1 = $this->getTableHtml($v['table_id_1'],'table_id_1[]',$table_list_tmp);
+                    $table_html_2 = $this->getTableHtml($v['table_id_2'],'table_id_2[]',$table_list_tmp);
                     $table_list[] = array('table_html_1'=>$table_html_1,'table_html_2'=>$table_html_2,'join_field_1'=>$field_html_1,'join_field_2'=>$field_html_2);
                 }
             }
-            $table_list_json = M('admin_tables')->where(array('project_code'=>$info['project_code']))->select();
+            if(empty($info['show_detail'])){
+                for($i=1;$i<=8;$i++){
+                    $table_html = $this->getTableHtml('','table_id[]',array(),'table_id_'.$i);
+                    $field_html = $this->getFieldHtml('','field_name[]',array(),'field_name_'.$i);
+                    $list[] = array('show_field_name'=>'','table'=>$table_html,'field_name'=>$field_html,'default_value'=>'');
+                }
+            }else{
+                $tb_1   = array_column($info['table_relation'],'table_id_1');
+                $tb_2   = array_column($info['table_relation'],'table_id_2');
+                $tb_arr = array_unique(array_merge($tb_1,$tb_2));
+                if(!empty($table_list_tmp)){
+                    foreach($table_list_tmp as $k=>$v){
+                        if(!in_array($v['id'],$tb_arr)){
+                            unset($table_list_tmp[$k]);
+                        }
+                    }
+                }
+                $i=0;
+                foreach($info['show_detail'] as $v){
+                    $field_list_1 =  !empty($table_key_list[$v['table_id']]['table_detail'])?json_decode($table_key_list[$v['table_id']]['table_detail'],1):array();
+                    $table_html = $this->getTableHtml($v['table_id'],'table_id[]',$table_list_tmp,'table_id_'.$i);
+                    $field_html = $this->getFieldHtml($v['field_name'],'field_name[]',$field_list_1,'field_name_'.$i);
+                    $list[] = array('show_field_name'=>$v['show_field_name'],'table'=>$table_html,'field_name'=>$field_html,'default_value'=>$v['default_value']);
+                    $i++;
+                }
+            }
+            $table_list_json = M('admin_tables')->field('table_name,id,table_annotation')->where(array('project_code'=>$info['project_code']))->select();
             $this->assign('table_list_json', !empty($table_list_json)?json_encode($table_list_json):'');
             $this->assign('info',!empty($info)?$info:array());
             $this->assign('table_list',$table_list);// 赋值数据集
@@ -422,6 +429,41 @@ class IndexController extends BaseController {
         }else{
             $this->error('操作失败', U('index/table_list'));
         }
+    }
+
+    private function getListDetail(){
+        $ret1 = $ret2   = array();
+        $columns1 = array('table_id_1','table_id_2','field_name_1','field_name_2');
+        $columns2 = array('show_field_name','table_id','field_name','default_value');
+        $num1     = !empty($_REQUEST['table_id_1'])?count($_REQUEST['table_id_1']):0;
+        $num2     = !empty($_REQUEST['table_id_1'])?count($_REQUEST['table_id_1']):0;
+        if($num1){
+            for($i=0;$i<$num1;$i++){
+                $tmp    = array();
+                foreach($columns1 as $col){
+                    if(!empty($_REQUEST[$col][$i])){
+                        $tmp[$col]  = $_REQUEST[$col][$i];
+                    }else{
+                        continue 2;
+                    }
+                }
+                $ret1[] = $tmp;
+            }
+        }
+        if($num2){
+            for($i=0;$i<$num2;$i++){
+                $tmp    = array();
+                foreach($columns2 as $col){
+                    if(!empty($_REQUEST[$col][$i])){
+                        $tmp[$col]  = $_REQUEST[$col][$i];
+                    }else{
+                        continue 2;
+                    }
+                }
+                $ret2[] = $tmp;
+            }
+        }
+        return array('table_relation'=>$ret1,'show_detail'=>$ret2);
     }
 
     private function getTableDetail(){
